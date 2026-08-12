@@ -16,7 +16,8 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
-    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "phase0-smoke-tests": "node scripts/phase0-smoke-tests.js"
   },
   "dependencies": {
     "@ai-sdk/otel": "^1.0.15",

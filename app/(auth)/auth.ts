@@ -2,11 +2,12 @@ import { compare } from "bcrypt-ts";
 import NextAuth, { type DefaultSession } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
 import { DUMMY_PASSWORD } from "@/lib/constants";
 import { createGuestUser, getUser } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
 
-export type UserType = "guest" | "regular";
+export type UserType = "guest" | "regular" | "github";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -56,6 +57,14 @@ export const {
     },
   },
   providers: [
+    // GitHub OAuth
+    GitHub({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    
+    // Credentials (email/password)
     Credentials({
       async authorize(credentials) {
         const email = String(credentials.email ?? "");
@@ -87,6 +96,8 @@ export const {
         password: { label: "Password", type: "password" },
       },
     }),
+    
+    // Guest (anonymous)
     Credentials({
       async authorize() {
         const [guestUser] = await createGuestUser();
