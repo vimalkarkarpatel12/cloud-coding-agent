@@ -5,7 +5,17 @@ const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 export const authConfig = {
   basePath: "/api/auth",
   callbacks: {
-    authorized({ auth }) {
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+
+      if (pathname === "/api/metrics") {
+        return true;
+      }
+
+      if (pathname === "/api/auth/guest") {
+        return true;
+      }
+
       // Protected routes: all routes except /login and /register
       return !!auth;
     },
