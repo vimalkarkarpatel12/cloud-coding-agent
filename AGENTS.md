@@ -15,7 +15,7 @@ This document tracks the status of the **agentic coding platform** project acros
 | 0 | Neon → Self-Hosted Supabase | 🟢 **COMPLETED** | Docker Compose, Auth, Schema Migration |
 | 1 | Multi-Tenant MVP + OpenHands | 🟢 **COMPLETED** | Agent API, OpenHands Integration, Settings UI, SSE Stream |
 | 2 | Reliability & Session Persistence | 🟢 **COMPLETED** | BullMQ/Redis Queueing, Worker Pool, Cleanup, Session Resume |
-| 3 | Code Visualization & Approval | ⚪ Not Started | Diff Viewer, Approval Workflow, PR Templates |
+| 3 | Code Visualization & Approval | 🟢 **COMPLETED** | Diff Viewer, Approval Workflow, PR Templates |
 | 4 | Observability & Telemetry | ⚪ Not Started | Prometheus, Grafana, Metrics Dashboard |
 
 ---
@@ -172,17 +172,17 @@ This document tracks the status of the **agentic coding platform** project acros
 
 ## Phase 3: Code Visualization and Approval Workflow
 
-**Status:** ⚪ **NOT STARTED**
+**Status:** 🟢 **COMPLETED** ✅
 
 **Goal:** Show code changes clearly and allow users to approve/reject before commit.
 
-### Expected Deliverables
+### Completed Deliverables ✅
 
-- [ ] Dedicated diff viewer (unified + split view)
-- [ ] File tabs showing all changes
-- [ ] Approve/Reject workflow pauses execution
-- [ ] Approved changes committed to git
-- [ ] PRs opened with agent reasoning
+- [x] Dedicated diff viewer (unified + split view, file tabs: `components/code-diff-viewer.tsx`)
+- [x] Interactive Approve/Reject API workflow (`app/api/agent/session/[sessionId]/approve/route.ts`)
+- [x] Approved changes committed & PR opened with agent reasoning (`lib/github-pr.ts`)
+- [x] Rejected changes sandbox cleanup integration (`lib/sandbox-cleanup.ts`)
+- [x] Automated Phase 3 smoke testing (`scripts/phase3-smoke-tests.js`)
 
 ### Estimated Timeline
 

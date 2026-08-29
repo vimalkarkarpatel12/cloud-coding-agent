@@ -19,7 +19,8 @@
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
     "phase0-smoke-tests": "node scripts/phase0-smoke-tests.js",
     "phase1-smoke-tests": "node scripts/phase1-smoke-tests.js",
-    "phase2-smoke-tests": "node scripts/phase2-smoke-tests.js"
+    "phase2-smoke-tests": "node scripts/phase2-smoke-tests.js",
+    "phase3-smoke-tests": "node scripts/phase3-smoke-tests.js"
   },
   "dependencies": {
     "@ai-sdk/otel": "^1.0.15",

@@ -11,6 +11,7 @@ interface FileChange {
 }
 
 interface CodeDiffViewerProps {
+  sessionId?: string;
   changes: FileChange[];
   onApprove?: () => void;
   onReject?: () => void;
@@ -18,6 +19,7 @@ interface CodeDiffViewerProps {
 }
 
 export function CodeDiffViewer({
+  sessionId,
   changes,
   onApprove,
   onReject,
@@ -25,6 +27,8 @@ export function CodeDiffViewer({
 }: CodeDiffViewerProps) {
   const [viewMode, setViewMode] = useState<"unified" | "split">("unified");
   const [selectedFile, setSelectedFile] = useState<string>(changes[0]?.path || "");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [statusText, setStatusText] = useState<string | null>(null);
 
   if (!changes || changes.length === 0) {
     return (
@@ -35,6 +39,35 @@ export function CodeDiffViewer({
   }
 
   const currentChange = changes.find((c) => c.path === selectedFile) || changes[0];
+
+  async function handleApprovalAction(approved: boolean) {
+    if (!sessionId) {
+      if (approved && onApprove) onApprove();
+      if (!approved && onReject) onReject();
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/agent/session/${sessionId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
+
+      if (!res.ok) throw new Error("Approval action failed");
+      const data = await res.json();
+      setStatusText(approved ? "✓ Changes approved and committed!" : "✗ Changes rejected");
+
+      if (approved && onApprove) onApprove();
+      if (!approved && onReject) onReject();
+    } catch (err) {
+      console.error(err);
+      setStatusText("Failed to process approval request");
+    } finally {
+      setActionLoading(false);
+    }
+  }
 
   return (
     <div className="border rounded-lg p-4 bg-card shadow-sm space-y-4">
@@ -62,6 +95,12 @@ export function CodeDiffViewer({
           </Button>
         </div>
       </div>
+
+      {statusText && (
+        <div className="text-xs p-2 rounded bg-muted font-medium text-center">
+          {statusText}
+        </div>
+      )}
 
       {/* File selector tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 border-b">
@@ -97,24 +136,23 @@ export function CodeDiffViewer({
       </div>
 
       {/* Action buttons */}
-      {(onApprove || onReject) && (
-        <div className="flex gap-3 pt-2 border-t">
-          {onApprove && (
-            <Button
-              onClick={onApprove}
-              disabled={isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              ✓ Approve & Commit
-            </Button>
-          )}
-          {onReject && (
-            <Button onClick={onReject} disabled={isLoading} variant="outline" className="flex-1">
-              ✗ Reject Changes
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="flex gap-3 pt-2 border-t">
+        <Button
+          onClick={() => handleApprovalAction(true)}
+          disabled={isLoading || actionLoading}
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+        >
+          {actionLoading ? "Processing..." : "✓ Approve & Commit"}
+        </Button>
+        <Button
+          onClick={() => handleApprovalAction(false)}
+          disabled={isLoading || actionLoading}
+          variant="outline"
+          className="flex-1"
+        >
+          ✗ Reject Changes
+        </Button>
+      </div>
     </div>
   );
 }
@@ -159,4 +197,3 @@ function SplitView({ before, after }: { before: string; after: string }) {
     </div>
   );
 }
-

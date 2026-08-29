@@ -80,24 +80,30 @@ export async function openPullRequest(params: CreatePRParams): Promise<PRRespons
 }
 
 /**
- * Helper to generate standardized PR Markdown body describing agent reasoning and changes.
+ * Generate standardized Markdown PR body featuring agent task description, reasoning, and changed files.
  */
-export function generatePRBody(taskDescription: string, changes: FileChangeItem[]): string {
-  const fileSummary = changes
-    .map((c) => `- \`${c.path}\` (${c.status})`)
-    .join("\n");
+export function generatePRBody(
+  taskDescription: string,
+  changes: FileChangeItem[],
+  reasoning?: string
+): string {
+  const fileSummary =
+    changes && changes.length > 0
+      ? changes.map((c) => `- \`${c.path}\` (${c.status})`).join("\n")
+      : "_No direct file modifications recorded._";
 
   return `
 ## 🤖 Automated Code Changes by OpenHands Agent
 
-### Task Description
+### 📋 Task Description
 > ${taskDescription}
 
-### Changed Files (${changes.length})
+${reasoning ? `### 💡 Agent Reasoning & User Approval\n${reasoning}\n` : ""}
+
+### 📝 Changed Files (${changes ? changes.length : 0})
 ${fileSummary}
 
 ---
 *Generated automatically by Self-Hosted Agentic Coding Platform on ${new Date().toISOString()}*
 `.trim();
 }
-
