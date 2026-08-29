@@ -1,19 +1,20 @@
-export function GET() {
-  const lines = [
-    "# HELP app_up Whether the application is serving metrics",
-    "# TYPE app_up gauge",
-    "app_up 1",
-    "# HELP process_uptime_seconds Process uptime in seconds",
-    "# TYPE process_uptime_seconds gauge",
-    `process_uptime_seconds ${process.uptime().toFixed(3)}`,
-    "# HELP app_info Application metadata",
-    "# TYPE app_info gauge",
-    `app_info{version="${process.env.npm_package_version ?? "dev"}",node_env="${process.env.NODE_ENV ?? "development"}"} 1`,
-  ];
+import { register } from "@/lib/metrics";
 
-  return new Response(`${lines.join("\n")}\n`, {
-    headers: {
-      "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
-    },
-  });
+export async function GET() {
+  try {
+    const metricsData = await register.metrics();
+    return new Response(metricsData, {
+      status: 200,
+      headers: {
+        "Content-Type": register.contentType,
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  } catch (error: any) {
+    console.error("Failed to generate Prometheus metrics:", error?.stack || error);
+    return new Response(JSON.stringify({ error: String(error) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }

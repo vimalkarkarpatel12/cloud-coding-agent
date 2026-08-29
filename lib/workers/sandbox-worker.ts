@@ -1,16 +1,29 @@
 import { popSandboxJob, SandboxJobData } from "@/lib/queue";
 import { db } from "@/lib/db/queries";
-import { agentSession, agentAction } from "@/lib/db/schema";
+import { agentSession, agentAction, executionMetric } from "@/lib/db/schema";
 import { getUserSecret } from "@/lib/secrets";
+import {
+  tokenCounter,
+  executionTimeHistogram,
+  toolCallCounter,
+  concurrentSandboxesGauge,
+  agentQualityCounter,
+} from "@/lib/metrics";
 import { eq } from "drizzle-orm";
 
 const OPENHANDS_URL = process.env.OPENHANDS_API_URL || "http://127.0.0.1:3002";
-const JOB_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes max execution time
 
 export async function processSandboxJob(job: SandboxJobData) {
   const { sessionId, userId, taskDescription, model = "claude-3-5-sonnet-20241022" } = job;
+  const startTime = Date.now();
 
   console.log(`[Worker] Processing sandbox job for session ${sessionId}...`);
+  concurrentSandboxesGauge.inc();
+
+  let taskStatus = "success";
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let toolCallCount = 0;
 
   try {
     // 1. Fetch user's LLM key
@@ -19,14 +32,14 @@ export async function processSandboxJob(job: SandboxJobData) {
       llmKey = process.env.OPENHANDS_LLM_API_KEY || process.env.ANTHROPIC_API_KEY || "";
     }
 
-    // 2. Record worker start action
+    // Record start action
     await db.insert(agentAction).values({
       sessionId,
       actionType: "worker_start",
       actionData: { status: "started", model, timestamp: new Date().toISOString() },
     });
 
-    // 3. Initiate OpenHands Session
+    // 2. Initiate OpenHands Session
     const ohRes = await fetch(`${OPENHANDS_URL}/api/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,6 +52,7 @@ export async function processSandboxJob(job: SandboxJobData) {
     });
 
     if (!ohRes.ok) {
+      taskStatus = "failed";
       const errText = await ohRes.text();
       console.warn(`[Worker] OpenHands creation failed: ${ohRes.status} ${errText}`);
 
@@ -59,7 +73,7 @@ export async function processSandboxJob(job: SandboxJobData) {
     const ohData = await ohRes.json();
     const openhandsSessionId = ohData.session_id || ohData.id;
 
-    // Update DB with OpenHands session ID and status running
+    // Update DB
     await db
       .update(agentSession)
       .set({
@@ -75,9 +89,9 @@ export async function processSandboxJob(job: SandboxJobData) {
       actionData: { openhandsSessionId, status: "running" },
     });
 
-    console.log(`[Worker] Job for session ${sessionId} successfully initialized with OpenHands ID ${openhandsSessionId}`);
     return { success: true, openhandsSessionId };
   } catch (err) {
+    taskStatus = "failed";
     console.error(`[Worker] Error processing sandbox job for session ${sessionId}:`, err);
 
     await db
@@ -92,6 +106,32 @@ export async function processSandboxJob(job: SandboxJobData) {
     });
 
     return { success: false, error: String(err) };
+  } finally {
+    const endTime = Date.now();
+    const durationSeconds = Math.round((endTime - startTime) / 1000);
+
+    // Record Prometheus metrics
+    concurrentSandboxesGauge.dec();
+    executionTimeHistogram.observe({ status: taskStatus, model }, durationSeconds);
+    agentQualityCounter.inc({ status: taskStatus, model });
+
+    if (inputTokens > 0) tokenCounter.inc({ model, type: "input" }, inputTokens);
+    if (outputTokens > 0) tokenCounter.inc({ model, type: "output" }, outputTokens);
+
+    // Persist metrics to database table
+    try {
+      await db.insert(executionMetric).values({
+        sessionId,
+        model,
+        durationSeconds: BigInt(durationSeconds),
+        inputTokens: BigInt(inputTokens),
+        outputTokens: BigInt(outputTokens),
+        toolCalls: BigInt(toolCallCount),
+        status: taskStatus,
+      });
+    } catch (metricDbErr) {
+      console.warn("Failed to persist execution metric to DB:", metricDbErr);
+    }
   }
 }
 

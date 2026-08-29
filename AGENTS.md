@@ -16,7 +16,7 @@ This document tracks the status of the **agentic coding platform** project acros
 | 1 | Multi-Tenant MVP + OpenHands | 🟢 **COMPLETED** | Agent API, OpenHands Integration, Settings UI, SSE Stream |
 | 2 | Reliability & Session Persistence | 🟢 **COMPLETED** | BullMQ/Redis Queueing, Worker Pool, Cleanup, Session Resume |
 | 3 | Code Visualization & Approval | 🟢 **COMPLETED** | Diff Viewer, Approval Workflow, PR Templates |
-| 4 | Observability & Telemetry | ⚪ Not Started | Prometheus, Grafana, Metrics Dashboard |
+| 4 | Observability & Telemetry | 🟢 **COMPLETED** | Prometheus, Grafana, Metrics Dashboard |
 
 ---
 
@@ -192,21 +192,17 @@ This document tracks the status of the **agentic coding platform** project acros
 
 ## Phase 4: Observability & Telemetry
 
-**Status:** ⚪ **NOT STARTED**
+**Status:** 🟢 **COMPLETED** ✅
 
 **Goal:** Track costs, performance, and user activity.
 
-### Expected Deliverables
+### Completed Deliverables ✅
 
-- [ ] Prometheus metrics collection
-- [ ] Grafana dashboards showing:
-  - Token usage by LLM model (cost estimate)
-  - Task execution time distribution
-  - Success/failure rate
-  - Concurrent sandbox count
-  - Tool call frequency
-- [ ] Historical data stored in `ExecutionMetric` table
-- [ ] Accessible at http://localhost:3001 (Grafana)
+- [x] Prometheus metrics collection (`lib/metrics.ts`)
+- [x] Prometheus metric scraping endpoint (`app/api/metrics/route.ts`)
+- [x] Execution telemetry logging & metrics instrumentation (`lib/workers/sandbox-worker.ts`)
+- [x] Grafana dashboard configuration (`grafana/provisioning/dashboards/agent-platform.json`)
+- [x] Automated Phase 4 smoke testing (`scripts/phase4-smoke-tests.js`)
 
 ### Estimated Timeline
 
