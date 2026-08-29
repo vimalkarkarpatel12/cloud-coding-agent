@@ -8,6 +8,20 @@
       "when": 1710000000000,
       "tag": "0000_initial",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1710000000001,
+      "tag": "0001_agent_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1710000000002,
+      "tag": "0002_add_chat_fields",
+      "breakpoints": true
     }
   ]
 }

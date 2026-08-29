@@ -22,9 +22,9 @@ function parseEnvFile(path) {
 const env = Object.assign({}, process.env, parseEnvFile('.env.local'));
 
 const endpoints = [
-  { name: 'Next.js', url: env.NEXT_URL || 'http://localhost:3000' },
-  { name: 'Prometheus', url: env.PROMETHEUS_URL || 'http://localhost:9090' },
-  { name: 'Grafana', url: env.GRAFANA_URL || 'http://localhost:3001' }
+  { name: 'Next.js', url: env.NEXT_URL || 'http://127.0.0.1:3000' },
+  { name: 'Prometheus', url: env.PROMETHEUS_URL || 'http://127.0.0.1:9090' },
+  { name: 'Grafana', url: env.GRAFANA_URL || 'http://127.0.0.1:3001' }
 ];
 
 function httpGet(url, timeout = 5000) {

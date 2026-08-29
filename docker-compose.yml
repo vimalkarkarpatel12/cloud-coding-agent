@@ -59,7 +59,7 @@ services:
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
 
       # OpenHands (will be added in Phase 1)
-      OPENHANDS_API_URL: http://openhands:3001
+      OPENHANDS_API_URL: http://openhands:3000
 
       # Node
       NODE_ENV: development
@@ -121,6 +121,29 @@ services:
     depends_on:
       - postgres
 
+  # OpenHands agent server (Phase 1)
+  # NOTE: Temporarily disabled because the OpenHands image requires registry access.
+  # To enable, restore the service block below and ensure the host can pull the image
+  # or provide a locally built image. Example service (disabled):
+  # openhands:
+  #   image: docker.openhands.dev/openhands/openhands:latest
+  #   container_name: app_openhands
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3002:3000"
+  #   environment:
+  #     LOG_ALL_EVENTS: "true"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - openhands_data:/.openhands
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_started
+  #   networks:
+  #     - default
+
   # Grafana (Phase 4, but including for completeness)
   grafana:
     image: grafana/grafana:latest
@@ -141,7 +164,9 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  # openhands_data: (disabled while OpenHands service is commented out)
 
 networks:
   default:
     name: app_network
+     

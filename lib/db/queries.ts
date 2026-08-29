@@ -29,6 +29,9 @@ import {
   suggestion,
   type User,
   user,
+  agentSession,
+  agentAction,
+  userSecret,
   vote,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
@@ -587,5 +590,83 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     return streamIds.map(({ id }) => id);
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+// --- Agent session helpers (used by Phase 1 API)
+export async function createAgentSession({
+  userId,
+  taskDescription,
+  sandboxId,
+  openhandsSessionId,
+}: {
+  userId: string;
+  taskDescription?: string;
+  sandboxId?: string | null;
+  openhandsSessionId?: string | null;
+}) {
+  try {
+    const now = new Date();
+    const result = await db
+      .insert(agentSession)
+      .values({
+        userId: userId,
+        // agentSession.taskDescription is non-nullable in schema; provide
+        // empty string when no description is given to satisfy the type.
+        taskDescription: taskDescription ?? "",
+        sandboxId: sandboxId ?? null,
+        openhands_session_id: openhandsSessionId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      } as any)
+      .returning();
+
+    return result[0];
+  } catch (error) {
+    throw new ChatbotError('bad_request:database', { cause: error });
+  }
+}
+
+export async function listAgentSessionsByUser({ userId }: { userId: string }) {
+  try {
+    return await db.select().from(agentSession).where(eq(agentSession.userId, userId)).orderBy(desc(agentSession.createdAt));
+  } catch (error) {
+    throw new ChatbotError('bad_request:database', { cause: error });
+  }
+}
+
+export async function saveAgentAction({
+  sessionId,
+  actionType,
+  actionData,
+}: {
+  sessionId: string;
+  actionType: string;
+  actionData: any;
+}) {
+  try {
+    return await db.insert(agentAction).values({ sessionId, actionType, actionData, createdAt: new Date() });
+  } catch (error) {
+    throw new ChatbotError('bad_request:database', { cause: error });
+  }
+}
+
+export async function saveUserSecret({
+  userId,
+  secretName,
+  encryptedValue,
+}: {
+  userId: string;
+  secretName: string;
+  encryptedValue: string;
+}) {
+  try {
+    // Upsert: if exists update, else insert
+    await db
+      .insert(userSecret)
+      .values({ userId, secretName, encryptedValue, createdAt: new Date() })
+      .onConflictDoUpdate({ target: [userSecret.userId, userSecret.secretName], set: { encryptedValue } });
+  } catch (error) {
+    throw new ChatbotError('bad_request:database', { cause: error });
   }
 }

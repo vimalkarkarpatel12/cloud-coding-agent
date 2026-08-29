@@ -17,7 +17,9 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
-    "phase0-smoke-tests": "node scripts/phase0-smoke-tests.js"
+    "phase0-smoke-tests": "node scripts/phase0-smoke-tests.js",
+    "phase1-smoke-tests": "node scripts/phase1-smoke-tests.js",
+    "phase2-smoke-tests": "node scripts/phase2-smoke-tests.js"
   },
   "dependencies": {
     "@ai-sdk/otel": "^1.0.15",
@@ -41,6 +43,7 @@
     "ai": "7.0.15",
     "bcrypt-ts": "^8.0.1",
     "botid": "^1.5.11",
+    "bull": "^4.16.5",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",

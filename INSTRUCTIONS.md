@@ -100,7 +100,7 @@ The Vercel AI Chatbot template uses:
      updated_at TIMESTAMP DEFAULT NOW()
    );
    
-   CREATE TABLE IF NOT EXISTS "agent_actions" (
+   CREATE TABLE IF NOT EXISTS "agent_actions" ( 
      id BIGSERIAL PRIMARY KEY,
      session_id UUID NOT NULL REFERENCES agent_sessions,
      action_type TEXT, -- 'tool_call', 'observation', 'user_message', 'agent_message'
