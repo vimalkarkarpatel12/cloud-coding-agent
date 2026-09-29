@@ -1,0 +1,172 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: app_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: app_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app_nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      # Database
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/app
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Auth
+      AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-in-production-with-openssl-rand-base64-32}
+      NEXTAUTH_URL: http://localhost:3000
+
+      # GitHub OAuth (will be configured in auth.config.ts)
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+
+      # Supabase (local self-hosted)
+      SUPABASE_URL: http://supabase-auth:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+
+      # OpenHands (will be added in Phase 1)
+      OPENHANDS_API_URL: http://openhands:3000
+
+      # Node
+      NODE_ENV: development
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      supabase-auth:
+        condition: service_started
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+    command: pnpm dev
+
+  # Prometheus (Phase 4, but including for completeness)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: app_prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    depends_on:
+      - nextjs
+
+  # Supabase Auth (lightweight local auth service)
+  supabase-auth:
+    image: ghcr.io/supabase/auth:v2.189.0
+    container_name: app_supabase_auth
+    environment:
+      DB_DRIVER: postgres
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/app
+      API_EXTERNAL_URL: http://localhost:8000
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRY: 3600
+      SITE_URL: http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  # Supabase Storage API
+  supabase-storage:
+    image: ghcr.io/supabase/storage-api:latest
+    container_name: app_supabase_storage
+    environment:
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+
+  # OpenHands agent server (Phase 1)
+  # NOTE: Temporarily disabled because the OpenHands image requires registry access.
+  # To enable, restore the service block below and ensure the host can pull the image
+  # or provide a locally built image. Example service (disabled):
+  # openhands:
+  #   image: docker.openhands.dev/openhands/openhands:latest
+  #   container_name: app_openhands
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3002:3000"
+  #   environment:
+  #     LOG_ALL_EVENTS: "true"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - openhands_data:/.openhands
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_started
+  #   networks:
+  #     - default
+
+  # Grafana (Phase 4, but including for completeness)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: app_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  # openhands_data: (disabled while OpenHands service is commented out)
+
+networks:
+  default:
+    name: app_network
+     

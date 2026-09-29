@@ -1,7 +1,9 @@
 import type { InferSelectModel } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
   foreignKey,
+  index,
   json,
   pgTable,
   primaryKey,
@@ -134,3 +136,106 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+// OpenHands Integration Tables
+
+export const agentSession = pgTable(
+  "AgentSession",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+    taskDescription: text("taskDescription").notNull(),
+    status: varchar("status")
+      .notNull()
+      .default("idle"),
+    sandboxId: text("sandboxId"),
+    openhands_session_id: text("openhands_session_id"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("idx_agent_sessions_user").on(table.userId),
+    statusIdx: index("idx_agent_sessions_status").on(table.status),
+  })
+);
+
+export type AgentSession = InferSelectModel<typeof agentSession>;
+
+export const agentAction = pgTable(
+  "AgentAction",
+  {
+    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    sessionId: uuid("sessionId")
+      .notNull()
+      .references(() => agentSession.id),
+    actionType: varchar("actionType").notNull(),
+    actionData: json("actionData").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    sessionIdx: index("idx_agent_actions_session").on(table.sessionId),
+  })
+);
+
+export type AgentAction = InferSelectModel<typeof agentAction>;
+
+export const userSecret = pgTable(
+  "UserSecret",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+    secretName: varchar("secretName").notNull(),
+    encryptedValue: text("encryptedValue").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("idx_user_secrets_user").on(table.userId),
+  })
+);
+
+export type UserSecret = InferSelectModel<typeof userSecret>;
+
+export const githubApp = pgTable(
+  "GitHubApp",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+    installationId: varchar("installationId").notNull(),
+    appId: varchar("appId").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("idx_github_apps_user").on(table.userId),
+  })
+);
+
+export type GitHubApp = InferSelectModel<typeof githubApp>;
+
+export const executionMetric = pgTable(
+  "ExecutionMetric",
+  {
+    id: bigserial("id", { mode: "bigint" }).primaryKey(),
+    sessionId: uuid("sessionId")
+      .notNull()
+      .references(() => agentSession.id),
+    model: varchar("model").notNull(),
+    durationSeconds: bigserial("durationSeconds", { mode: "bigint" }).notNull(),
+    inputTokens: bigserial("inputTokens", { mode: "bigint" }),
+    outputTokens: bigserial("outputTokens", { mode: "bigint" }),
+    toolCalls: bigserial("toolCalls", { mode: "bigint" }),
+    status: varchar("status"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    sessionIdx: index("idx_execution_metrics_session").on(table.sessionId),
+    createdIdx: index("idx_execution_metrics_created").on(table.createdAt),
+  })
+);
+
+export type ExecutionMetric = InferSelectModel<typeof executionMetric>;

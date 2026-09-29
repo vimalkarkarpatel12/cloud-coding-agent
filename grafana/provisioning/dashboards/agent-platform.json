@@ -1,0 +1,82 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Agentic Coding Platform - Metrics & Telemetry",
+    "tags": ["agent", "llm", "prometheus"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "LLM Token Usage (24h)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(increase(agent_tokens_total[24h])) by (model, type)",
+            "legendFormat": "{{model}} ({{type}})"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Task Execution Duration (p50 / p90 / p99)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(agent_execution_seconds_bucket[1h])) by (le))",
+            "legendFormat": "p50 Median"
+          },
+          {
+            "expr": "histogram_quantile(0.90, sum(rate(agent_execution_seconds_bucket[1h])) by (le))",
+            "legendFormat": "p90"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(agent_execution_seconds_bucket[1h])) by (le))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Concurrent Active Sandboxes",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "agent_concurrent_sandboxes",
+            "legendFormat": "Active Sandboxes"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Agent Task Quality & Success Rate",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(agent_tasks_total{status='success'}[1h])) / sum(rate(agent_tasks_total[1h])) * 100",
+            "legendFormat": "Success Rate (%)"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Tool Call Frequency by Type",
+        "type": "timeseries",
+        "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(agent_tool_calls_total[1h])) by (tool_name)",
+            "legendFormat": "{{tool_name}}"
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 36,
+    "version": 1
+  }
+}
+
